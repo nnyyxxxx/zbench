@@ -1,24 +1,58 @@
 const std = @import("std");
+const Config = @import("config.zig").Config;
+const Runner = @import("benchmark/runner.zig").Runner;
+const BenchmarkType = @import("benchmark/types.zig").BenchmarkType;
+const BenchmarkResult = @import("benchmark/types.zig").BenchmarkResult;
+const StdoutFormat = @import("output/stdout.zig").StdoutFormat;
+const DatFormat = @import("output/dat.zig").DatFormat;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    const config = try Config.parse(allocator);
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    var runner = Runner.init(
+        allocator,
+        config.warmup,
+        config.max_secs,
+        config.max_samples,
+        config.min_bytes,
+    );
 
-    try bw.flush(); // don't forget to flush!
-}
+    var results = std.ArrayList(BenchmarkResult).init(allocator);
+    defer {
+        for (results.items) |*result| {
+            result.deinit(allocator);
+        }
+        results.deinit();
+    }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    const benchmarks = [_]BenchmarkType{
+        .cursor_motion,
+        .dense_cells,
+        .light_cells,
+        .medium_cells,
+        .scrolling,
+    };
+
+    for (benchmarks) |bench_type| {
+        const result = try runner.run(bench_type);
+        try results.append(result);
+    }
+
+    const stdout = std.io.getStdOut().writer();
+    var bw = std.io.bufferedWriter(stdout);
+    const writer = bw.writer();
+
+    if (!config.silent) {
+        try StdoutFormat.format(results.items, writer);
+    }
+
+    if (config.dat_path) |path| {
+        try DatFormat.init(path).write(results.items);
+    }
+
+    try bw.flush();
 }
