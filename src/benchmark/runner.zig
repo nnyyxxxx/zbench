@@ -86,25 +86,22 @@ pub const Runner = struct {
     }
 
     fn runCursorMotion(_: *Runner, writer: anytype) !void {
-        const cols: usize = 80;
-        const rows: usize = 24;
-
-        for (0..rows) |row| {
-            for (0..cols) |col| {
+        const size = try getTermSize();
+        for (0..size.rows) |row| {
+            for (0..size.cols) |col| {
                 try writer.print("\x1b[{};{}H#", .{ row + 1, col + 1 });
             }
         }
     }
 
     fn runDenseCells(_: *Runner, writer: anytype) !void {
-        const cols: usize = 80;
-        const rows: usize = 24;
+        const size = try getTermSize();
         var offset: usize = 0;
 
         for ("ABCDEFGHIJKLMNOPQRSTUVWXYZ") |char| {
             try writer.print("\x1b[H", .{});
-            for (0..rows) |row| {
-                for (0..cols) |col| {
+            for (0..size.rows) |row| {
+                for (0..size.cols) |col| {
                     const index = row + col + offset;
                     const fg = @mod(index, 156) + 100;
                     const bg = 255 - @mod(index, 156) + 100;
@@ -116,24 +113,22 @@ pub const Runner = struct {
     }
 
     fn runLightCells(_: *Runner, writer: anytype) !void {
-        const cols: usize = 80;
-        const rows: usize = 24;
+        const size = try getTermSize();
 
         for ("ABCDEFGHIJKLMNOPQRSTUVWXYZ") |char| {
             try writer.print("\x1b[H", .{});
-            for (0..rows * cols) |_| {
+            for (0..size.rows * size.cols) |_| {
                 try writer.writeByte(char);
             }
         }
     }
 
     fn runMediumCells(_: *Runner, writer: anytype) !void {
-        const cols: usize = 80;
-        const rows: usize = 24;
+        const size = try getTermSize();
 
         for ("ABCDEFGHIJKLMNOPQRSTUVWXYZ") |char| {
-            for (0..rows) |row| {
-                for (0..cols) |col| {
+            for (0..size.rows) |row| {
+                for (0..size.cols) |col| {
                     const color = @mod(row + col, 256);
                     try writer.print("\x1b[38;5;{}m{c}", .{ color, char });
                 }
@@ -233,3 +228,23 @@ pub const Runner = struct {
         }
     }
 };
+
+const TermSize = struct {
+    rows: usize,
+    cols: usize,
+};
+
+fn getTermSize() !TermSize {
+    if (@import("builtin").os.tag == .windows) {
+        return .{ .rows = 24, .cols = 80 };
+    }
+    var winsize: std.os.linux.winsize = undefined;
+    const fd = std.os.linux.STDOUT_FILENO;
+    const TIOCGWINSZ = 0x5413;
+    const err = std.os.linux.syscall3(.ioctl, @as(usize, @intCast(fd)), TIOCGWINSZ, @intFromPtr(&winsize));
+    if (err != 0) return error.IoctlError;
+    return .{
+        .rows = @intCast(winsize.ws_row),
+        .cols = @intCast(winsize.ws_col),
+    };
+}
