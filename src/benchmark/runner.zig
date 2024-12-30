@@ -44,8 +44,6 @@ pub const Runner = struct {
                 .light_cells => try self.runLightCells(writer),
                 .medium_cells => try self.runMediumCells(writer),
                 .scrolling => try self.runScrolling(writer),
-                .frame_rate => try self.runFrameRate(writer),
-                .latency => try self.runLatency(writer, &samples),
             }
             try writer.context.flush();
         }
@@ -64,8 +62,6 @@ pub const Runner = struct {
                 .light_cells => try self.runLightCells(writer),
                 .medium_cells => try self.runMediumCells(writer),
                 .scrolling => try self.runScrolling(writer),
-                .frame_rate => try self.runFrameRate(writer),
-                .latency => try self.runLatency(writer, &samples),
             }
             try writer.context.flush();
 
@@ -140,91 +136,6 @@ pub const Runner = struct {
     fn runScrolling(_: *Runner, writer: anytype) !void {
         for (0..100_000) |_| {
             try writer.writeAll("y\n");
-        }
-    }
-
-    const FrameData = struct {
-        timestamp: u64,
-        frame_count: usize,
-    };
-
-    fn runFrameRate(_: *Runner, writer: anytype) !void {
-        var frame_count: usize = 0;
-        const target_frames = 60;
-        const frame_duration = std.time.ns_per_s / target_frames;
-
-        while (frame_count < 600) : (frame_count += 1) {
-            const frame_start = try std.time.Instant.now();
-
-            try writer.writeAll("\x1b[2J\x1b[H");
-            try writer.print("Frame: {}", .{frame_count});
-            try writer.context.flush();
-
-            const elapsed = (try std.time.Instant.now()).since(frame_start);
-            if (elapsed < frame_duration) {
-                std.time.sleep(frame_duration - elapsed);
-            }
-        }
-    }
-
-    fn runLatency(_: *Runner, writer: anytype, samples: *std.ArrayList(usize)) !void {
-        var prng = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
-        const random = prng.random();
-
-        const stdin = std.io.getStdIn();
-        var termios: std.os.linux.termios = undefined;
-        const TCGETS = 0x5401;
-        const TCSETS = 0x5402;
-
-        const rc = std.os.linux.syscall3(.ioctl, @as(usize, @intCast(stdin.handle)), TCGETS, @intFromPtr(&termios));
-        if (rc != 0) return error.IoctlError;
-
-        const old_termios = termios;
-        termios.lflag.ECHO = false;
-        termios.lflag.ICANON = false;
-
-        const set_rc = std.os.linux.syscall3(.ioctl, @as(usize, @intCast(stdin.handle)), TCSETS, @intFromPtr(&termios));
-        if (set_rc != 0) return error.IoctlError;
-        defer {
-            _ = std.os.linux.syscall3(.ioctl, @as(usize, @intCast(stdin.handle)), TCSETS, @intFromPtr(&old_termios));
-        }
-
-        for (0..100) |_| {
-            const x = random.intRangeAtMost(usize, 1, 80);
-            const y = random.intRangeAtMost(usize, 1, 24);
-
-            var timer = try std.time.Timer.start();
-            try writer.print("\x1b[{};{}H#\x1b[6n", .{ y, x });
-            try writer.context.flush();
-
-            const timeout_ns = 1 * std.time.ns_per_s;
-            const start = timer.read();
-            var response_complete = false;
-
-            while (!response_complete) {
-                const byte = stdin.reader().readByte() catch break;
-                if (byte == '\x1b') {
-                    const next_byte = stdin.reader().readByte() catch break;
-                    if (next_byte == '[') {
-                        while (true) {
-                            const resp_byte = stdin.reader().readByte() catch break;
-                            if (resp_byte == 'R') {
-                                response_complete = true;
-                                break;
-                            }
-                            if (timer.read() - start > timeout_ns) break;
-                        }
-                    }
-                }
-                if (timer.read() - start > timeout_ns) break;
-            }
-
-            if (response_complete) {
-                const elapsed = timer.read() - start;
-                try samples.append(@intCast(elapsed / std.time.ns_per_ms));
-            }
-
-            std.time.sleep(50 * std.time.ns_per_ms);
         }
     }
 };
