@@ -35,6 +35,8 @@ pub fn main() !void {
         .light_cells,
         .medium_cells,
         .scrolling,
+        .unicode,
+        .fullscreen_scroll,
     };
 
     for (benchmarks) |bench_type| {

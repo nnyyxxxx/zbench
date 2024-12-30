@@ -12,6 +12,8 @@ pub const BenchmarkType = enum {
     light_cells,
     medium_cells,
     scrolling,
+    unicode,
+    fullscreen_scroll,
 };
 
 pub const BenchmarkResult = struct {

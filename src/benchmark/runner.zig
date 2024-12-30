@@ -44,6 +44,8 @@ pub const Runner = struct {
                 .light_cells => try self.runLightCells(writer),
                 .medium_cells => try self.runMediumCells(writer),
                 .scrolling => try self.runScrolling(writer),
+                .unicode => try self.runUnicode(writer),
+                .fullscreen_scroll => try self.runFullscreenScroll(writer),
             }
             try writer.context.flush();
         }
@@ -62,6 +64,8 @@ pub const Runner = struct {
                 .light_cells => try self.runLightCells(writer),
                 .medium_cells => try self.runMediumCells(writer),
                 .scrolling => try self.runScrolling(writer),
+                .unicode => try self.runUnicode(writer),
+                .fullscreen_scroll => try self.runFullscreenScroll(writer),
             }
             try writer.context.flush();
 
@@ -136,6 +140,63 @@ pub const Runner = struct {
     fn runScrolling(_: *Runner, writer: anytype) !void {
         for (0..100_000) |_| {
             try writer.writeAll("y\n");
+        }
+    }
+
+    fn runUnicode(_: *Runner, writer: anytype) !void {
+        const size = try getTermSize();
+        const symbols = [_][]const u8{
+            "你好",     "世界",     "안녕",     "こんにちは", "สวัสดี",
+            "🌍",       "🌎",       "🌏",       "⭐",             "🚀",
+            "♔",        "♕",        "♖",        "♗",             "♘",
+            "∀",        "∃",        "∈",        "∉",             "∋",
+            "𓀀",       "𓀁",       "𓀂",       "𓀃",            "𓀄",
+            "☀",        "☁",        "☂",        "☃",             "☄",
+            "⚀",        "⚁",        "⚂",        "⚃",             "⚄",
+            "⛅",        "⛆",        "⛇",        "⛈",             "⛉",
+            "❄",        "❅",        "❆",        "❇",             "❈",
+            "⚔",        "⚕",        "⚖",        "⚗",             "⚘",
+            "◰",        "◱",        "◲",        "◳",             "◴",
+            "✠",        "✡",        "✢",        "✣",             "✤",
+            "⛩",        "⛪",        "⛫",        "⛬",             "⛭",
+            "😀",       "😁",       "😂",       "😃",            "😄",
+            "😅",       "😆",       "😇",       "😈",            "😉",
+            "🙈",       "🙉",       "🙊",       "🙋",            "🙌",
+            "😎",       "😏",       "😐",       "😑",            "😒",
+            "🙁",       "🙂",       "🙃",       "🙄",            "🙅",
+            "😺",       "😸",       "😹",       "😻",            "😼",
+            "ĀāĂăĄ", "ąĆćĈĉ", "ĊċČčĎ", "ďĐđĒē",      "ĔĕĖė",
+            "ĘęĚěĜ", "ĝĞğĠġ", "ĢģĤĥĦ", "ħĨĩĪī",      "ĬĭĮį",
+            "ƀƁƂƃƄ", "ƅƆƇƈƉ", "ƊƋƌƍƎ", "ƏƐƑƒƓ",      "ƔƕƖƗ",
+            "ʰʱʲʳʴ", "ʵʶʷʸʹ", "ʺʻʼʽʾ", "ʿˀˁ˂˃",      "˄˅ˆˇˈ",
+            "한글",     "테스트",  "하나둘",  "삼사오",       "육칠팔",
+            "가나다",  "라마바",  "사아자",  "차카타",       "파하",
+            "햇빛",     "달빛",     "별빛",     "구름",          "바람",
+            "하늘",     "바다",     "땅과",     "산과",          "들판",
+        };
+
+        for (symbols) |symbol| {
+            for (0..size.rows) |row| {
+                for (0..size.cols) |_| {
+                    try writer.writeAll(symbol);
+                }
+                if (row < size.rows - 1) try writer.writeByte('\n');
+            }
+            try writer.writeAll("\x1b[H");
+        }
+    }
+
+    fn runFullscreenScroll(self: *Runner, writer: anytype) !void {
+        const size = try getTermSize();
+        const line = try self.allocator.alloc(u8, size.cols);
+        defer self.allocator.free(line);
+        @memset(line, 'A');
+
+        const iterations = size.rows * 100;
+        var i: usize = 0;
+        while (i < iterations) : (i += 1) {
+            try writer.writeAll(line);
+            try writer.writeByte('\n');
         }
     }
 };
