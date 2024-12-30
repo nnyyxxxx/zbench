@@ -35,6 +35,8 @@ pub fn main() !void {
         .light_cells,
         .medium_cells,
         .scrolling,
+        .frame_rate,
+        .latency,
     };
 
     for (benchmarks) |bench_type| {

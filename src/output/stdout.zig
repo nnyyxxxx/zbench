@@ -14,11 +14,26 @@ pub const StdoutFormat = struct {
                 size_mib,
             });
 
-            try writer.print("    {d:.2}ms avg (90% < {}ms) +-{d:.2}ms\n", .{
-                result.mean(),
-                result.percentile(90),
-                result.stddev(),
-            });
+            if (std.mem.eql(u8, result.name, "frame_rate")) {
+                const fps = 1000.0 / result.mean();
+                try writer.print("    {d:.2} FPS avg (90% > {d:.2} FPS) +-{d:.2}ms\n", .{
+                    fps,
+                    1000.0 / @as(f64, @floatFromInt(result.percentile(90))),
+                    result.stddev(),
+                });
+            } else if (std.mem.eql(u8, result.name, "latency")) {
+                try writer.print("    {d:.2}ms avg latency (90% < {}ms) +-{d:.2}ms\n", .{
+                    result.mean(),
+                    result.percentile(90),
+                    result.stddev(),
+                });
+            } else {
+                try writer.print("    {d:.2}ms avg (90% < {}ms) +-{d:.2}ms\n", .{
+                    result.mean(),
+                    result.percentile(90),
+                    result.stddev(),
+                });
+            }
         }
     }
 };
