@@ -1,8 +1,8 @@
 <div align="center">
 
-# Termbench
+# zbench
 
-![](.github/termbench.png)
+![](.github/zbench.png)
 
 A terminal performance benchmarking tool written in Zig.
 
@@ -34,6 +34,10 @@ Results show:
 - Standard deviation
 - Sample count
 - Benchmark size
+
+## Credit
+
+Technically a rewrite of [vtebench](https://github.com/alacritty/vtebench) in Zig.
 
 ## License
 
