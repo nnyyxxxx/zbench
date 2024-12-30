@@ -6,23 +6,9 @@ const Error = types.Error;
 
 pub const Runner = struct {
     allocator: std.mem.Allocator,
-    config: struct {
-        warmup: usize,
-        max_secs: u64,
-        max_samples: ?usize,
-        min_bytes: usize,
-    },
 
-    pub fn init(allocator: std.mem.Allocator, warmup: usize, max_secs: u64, max_samples: ?usize, min_bytes: usize) Runner {
-        return .{
-            .allocator = allocator,
-            .config = .{
-                .warmup = warmup,
-                .max_secs = max_secs,
-                .max_samples = max_samples,
-                .min_bytes = min_bytes,
-            },
-        };
+    pub fn init(allocator: std.mem.Allocator) Runner {
+        return .{ .allocator = allocator };
     }
 
     pub fn run(self: *Runner, bench_type: BenchmarkType) !BenchmarkResult {
@@ -36,7 +22,7 @@ pub const Runner = struct {
         try writer.writeAll("\x1b[0m\x1b[2J\x1b[3J\x1b[1;1H");
         try writer.context.flush();
 
-        for (0..self.config.warmup) |_| {
+        for (0..1) |_| {
             try writer.writeAll("\x1b[0m\x1b[2J\x1b[3J\x1b[1;1H");
             switch (bench_type) {
                 .cursor_motion => try self.runCursorMotion(writer),
@@ -50,11 +36,10 @@ pub const Runner = struct {
             try writer.context.flush();
         }
 
-        const max_samples = self.config.max_samples orelse std.math.maxInt(usize);
-        const max_time_ns = self.config.max_secs * std.time.ns_per_s;
+        const max_time_ns = 10 * std.time.ns_per_s;
         var total_time: u64 = 0;
 
-        while (samples.items.len < max_samples and total_time < max_time_ns) {
+        while (total_time < max_time_ns) {
             try writer.writeAll("\x1b[0m\x1b[2J\x1b[3J\x1b[1;1H");
             var timer = try std.time.Timer.start();
 
@@ -80,7 +65,7 @@ pub const Runner = struct {
         return BenchmarkResult.init(
             self.allocator,
             @tagName(bench_type),
-            self.config.min_bytes,
+            1048576,
             samples.items,
         );
     }
