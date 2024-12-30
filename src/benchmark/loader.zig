@@ -24,9 +24,7 @@ pub const BenchmarkLoader = struct {
         return benchmarks;
     }
 
-    pub fn load(self: *const BenchmarkLoader, min_bytes: usize) !types.BenchmarkResult {
-        if (min_bytes == 0) return error.InvalidSize;
-
+    pub fn load(self: *const BenchmarkLoader) !types.BenchmarkResult {
         const term_size = try getTerminalSize();
         const buffer_size = term_size.rows * term_size.cols * 20;
         const buffer = try self.allocator.alloc(u8, buffer_size);
