@@ -8,32 +8,13 @@ A terminal performance benchmarking tool written in Zig.
 
 </div>
 
-## Features
-
-- **cursor_motion**:     Tests cursor positioning performance
-- **dense_cells**:       Tests heavy terminal rendering with colors and attributes
-- **light_cells**:       Tests basic character output
-- **medium_cells**:      Tests moderate terminal rendering with colors
-- **scrolling**:         Tests terminal scrolling performance
-- **unicode**:           Tests Unicode character rendering
-- **fullscreen_scroll**: Tests fullscreen scrolling performance
-
-## Usage
+## Installation
 
 ### Building
 
 ```
 zig build run
 ```
-
-## Output Format
-
-Results show:
-- Average time per operation
-- Percentile
-- Standard deviation
-- Sample count
-- Benchmark size
 
 ## Credit
 
