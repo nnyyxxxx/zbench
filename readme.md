@@ -33,10 +33,6 @@ cd zbench
 zig build --release=fast
 ```
 
-## Credit
-
-Technically a rewrite of [vtebench](https://github.com/alacritty/vtebench) in Zig.
-
 ## License
 
 Copyright (C) 2024 [Nyx](https://github.com/nnyyxxxx)
