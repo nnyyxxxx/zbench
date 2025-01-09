@@ -10,10 +10,27 @@ A terminal performance benchmarking tool written in Zig.
 
 ## Installation
 
+### Releases
+
+Prebuilt binaries can be found in the [releases](https://github.com/nnyyxxxx/zbench/releases) page
+
+```bash
+curl -fsSL https://github.com/nnyyxxxx/zbench/releases/latest/download/zbench -o zbench
+chmod +x zbench
+# Using `sudo` as an example, replace with your desired escalation tool.
+sudo mv zbench /usr/bin
+```
+
 ### Building
 
-```
-zig build run
+The built binary will be located inside of `zig-out/bin/`. Then it can be placed in `/usr/bin/`.
+
+```bash
+# Using `pacman` as an example, replace with your desired package manager.
+sudo pacman -S --needed zig git base-devel
+git clone https://github.com/nnyyxxxx/zbench.git
+cd zbench
+zig build --release=fast
 ```
 
 ## Credit
